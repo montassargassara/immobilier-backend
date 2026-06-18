@@ -1,0 +1,8 @@
+target/
+storage/
+uploads/
+*.log
+hs_err_pid*
+replay_pid*
+.git/
+.vscode/

@@ -1,0 +1,22 @@
+{
+  "properties": [
+    {
+      "name": "affiliate.bonus.rank1",
+      "type": "java.lang.Double",
+      "description": "Extra commission percentage awarded to the rank-1 affiliate next month.",
+      "defaultValue": 2.0
+    },
+    {
+      "name": "affiliate.bonus.rank2",
+      "type": "java.lang.Double",
+      "description": "Extra commission percentage awarded to the rank-2 affiliate next month.",
+      "defaultValue": 1.5
+    },
+    {
+      "name": "affiliate.bonus.rank3",
+      "type": "java.lang.Double",
+      "description": "Extra commission percentage awarded to the rank-3 affiliate next month.",
+      "defaultValue": 1.0
+    }
+  ]
+}

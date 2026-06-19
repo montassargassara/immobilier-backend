@@ -155,8 +155,8 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         // Dev front-end origin. Add prod hosts here as needed.
         configuration.setAllowedOrigins(Arrays.asList(
-       "http://localhost:4200",
-       "https://maison3d-immobilier.netlify.app/"));
+            "http://localhost:4200",
+            "https://maison3d-immobilier.netlify.app"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList(
             "Authorization",

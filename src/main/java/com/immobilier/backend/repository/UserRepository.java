@@ -23,8 +23,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Page<User> findByRole(RoleType role, Pageable pageable);
     
     boolean existsByEmail(String email);
-    
+
+    boolean existsByEmailAndIdNot(String email, Long id);
+
     boolean existsByTelephone(String telephone);
+
+    boolean existsByTelephoneAndIdNot(String telephone, Long id);
     
     List<User> findByIsActiveTrue();
     

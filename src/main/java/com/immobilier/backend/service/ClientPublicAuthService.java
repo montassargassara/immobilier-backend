@@ -4,6 +4,7 @@ import com.immobilier.backend.dto.AuthDTO;
 import com.immobilier.backend.dto.ClientPublicProfileDTO;
 import com.immobilier.backend.dto.ClientPublicRegisterRequest;
 import com.immobilier.backend.dto.LoginRequest;
+import com.immobilier.backend.dto.UpdateClientProfileRequest;
 import com.immobilier.backend.entity.ClientInfo;
 import com.immobilier.backend.entity.User;
 import com.immobilier.backend.enums.RoleType;
@@ -99,5 +100,35 @@ public class ClientPublicAuthService {
     public ClientPublicProfileDTO toProfile(User user) {
         return new ClientPublicProfileDTO(user.getId(), user.getEmail(), user.getNom(),
                 user.getPrenom(), user.getTelephone(), user.getRole().name());
+    }
+
+    @Transactional
+    public ClientPublicProfileDTO updateProfile(User user, UpdateClientProfileRequest req) {
+        String newEmail = req.getEmail().trim().toLowerCase();
+        String newPrenom = req.getPrenom().trim();
+        String newNom = req.getNom().trim();
+        String newTel = (req.getTelephone() != null && !req.getTelephone().isBlank())
+                ? req.getTelephone().trim() : null;
+
+        // Email uniqueness — allow keeping the same address
+        if (!newEmail.equals(user.getEmail())
+                && userRepository.existsByEmailAndIdNot(newEmail, user.getId())) {
+            throw new IllegalArgumentException("Un compte existe déjà avec cet email.");
+        }
+
+        // Telephone uniqueness — allow keeping the same number and allow null
+        if (newTel != null && !newTel.equals(user.getTelephone())
+                && userRepository.existsByTelephoneAndIdNot(newTel, user.getId())) {
+            throw new IllegalArgumentException("Un compte existe déjà avec ce numéro de téléphone.");
+        }
+
+        user.setPrenom(newPrenom);
+        user.setNom(newNom);
+        user.setEmail(newEmail);
+        user.setTelephone(newTel);
+        User saved = userRepository.save(user);
+
+        log.info("Public client {} updated their profile", saved.getId());
+        return toProfile(saved);
     }
 }

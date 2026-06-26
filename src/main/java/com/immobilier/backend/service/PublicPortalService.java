@@ -173,8 +173,14 @@ public class PublicPortalService {
         if (f == null) return true;
         if (f.country != null && !f.country.isBlank()
                 && !f.country.equalsIgnoreCase(p.getCountry())) return false;
-        if (f.city != null && !f.city.isBlank()
-                && !f.city.equalsIgnoreCase(p.getCity())) return false;
+        if (f.city != null && !f.city.isBlank()) {
+            // Partial, accent-insensitive city match: "sou" finds Sousse, La Soukra, etc.
+            String needle = normalize(f.city.trim());
+            String hayCity = p.getCity() == null ? "" : normalize(p.getCity());
+            String hayRegion = p.getRegion() == null ? "" : normalize(p.getRegion());
+            String hayAddr = p.getAdresse() == null ? "" : normalize(p.getAdresse());
+            if (!hayCity.contains(needle) && !hayRegion.contains(needle) && !hayAddr.contains(needle)) return false;
+        }
         if (f.type != null && !f.type.isBlank()
                 && !f.type.equalsIgnoreCase(p.getType())) return false;
         if (f.minSurface != null && (p.getSurface() == null || p.getSurface() < f.minSurface)) return false;
@@ -186,14 +192,14 @@ public class PublicPortalService {
         if (f.maxPrice != null && (price == null || price > f.maxPrice)) return false;
 
         if (f.q != null && !f.q.isBlank()) {
-            String needle = f.q.toLowerCase(Locale.ROOT).trim();
-            String haystack = String.join(" ",
+            String needle = normalize(f.q.trim());
+            String haystack = normalize(String.join(" ",
                     nullSafe(p.getTitre()),
                     nullSafe(p.getDescription()),
                     nullSafe(p.getCity()),
                     nullSafe(p.getCountry()),
                     nullSafe(p.getRegion()),
-                    nullSafe(p.getAdresse())).toLowerCase(Locale.ROOT);
+                    nullSafe(p.getAdresse())));
             if (!haystack.contains(needle)) return false;
         }
         return true;
@@ -214,6 +220,18 @@ public class PublicPortalService {
 
     private String nullSafe(String s) {
         return s == null ? "" : s;
+    }
+
+    /**
+     * Lowercase + strip diacritics so "sou" matches "Sousse", "La Soukra",
+     * and "Nabeul" matches "Nabeûl" etc.
+     */
+    private String normalize(String s) {
+        if (s == null) return "";
+        return java.text.Normalizer
+                .normalize(s, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
+                .toLowerCase(Locale.ROOT);
     }
 
     private PublicPropertyCardDTO toCardDTO(Property p) {

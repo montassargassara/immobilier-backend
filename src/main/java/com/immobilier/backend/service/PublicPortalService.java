@@ -57,23 +57,35 @@ public class PublicPortalService {
     private final Model3DService model3DService;
 
     public List<PublicPropertyCardDTO> listForSale(PublicSearchFilters filters) {
-        return browsable()
+        log.info("[DEBUG Service] listForSale appelé — filtre city='{}' q='{}' country='{}'",
+                filters != null ? filters.getCity() : "null",
+                filters != null ? filters.getQ() : "null",
+                filters != null ? filters.getCountry() : "null");
+        List<PublicPropertyCardDTO> result = browsable()
                 .filter(this::isForSale)
-                .filter(p -> matches(p, filters))
+                .filter(p -> matchesWithLog(p, filters))
                 .sorted(Comparator.comparing(Property::getCreatedAt,
                         Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(this::toCardDTO)
                 .collect(Collectors.toList());
+        log.info("[DEBUG Service] listForSale — {} bien(s) retourné(s)", result.size());
+        return result;
     }
 
     public List<PublicPropertyCardDTO> listForRent(PublicSearchFilters filters) {
-        return browsable()
+        log.info("[DEBUG Service] listForRent appelé — filtre city='{}' q='{}' country='{}'",
+                filters != null ? filters.getCity() : "null",
+                filters != null ? filters.getQ() : "null",
+                filters != null ? filters.getCountry() : "null");
+        List<PublicPropertyCardDTO> result = browsable()
                 .filter(this::isForRent)
-                .filter(p -> matches(p, filters))
+                .filter(p -> matchesWithLog(p, filters))
                 .sorted(Comparator.comparing(Property::getCreatedAt,
                         Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(this::toCardDTO)
                 .collect(Collectors.toList());
+        log.info("[DEBUG Service] listForRent — {} bien(s) retourné(s)", result.size());
+        return result;
     }
 
     public List<PublicPropertyCardDTO> featuredForSale(int limit) {
@@ -169,30 +181,44 @@ public class PublicPortalService {
         return p.getPrixLocation() != null && p.getPrixLocation() > 0;
     }
 
+    private boolean matchesWithLog(Property p, PublicSearchFilters f) {
+        if (f == null) return true;
+        boolean hasCityFilter = f.getCity() != null && !f.getCity().isBlank();
+        log.info("[DEBUG Service] Test bien id={} titre='{}' city='{}' region='{}' | filtre city='{}'",
+                p.getId(), p.getTitre(), p.getCity(), p.getRegion(),
+                hasCityFilter ? f.getCity() : "(aucun)");
+        boolean result = matches(p, f);
+        if (hasCityFilter) {
+            log.info("[DEBUG Service]   → {} (filtre city appliqué)", result ? "INCLUS" : "EXCLU");
+        }
+        return result;
+    }
+
     private boolean matches(Property p, PublicSearchFilters f) {
         if (f == null) return true;
-        if (f.country != null && !f.country.isBlank()
-                && !f.country.equalsIgnoreCase(p.getCountry())) return false;
-        if (f.city != null && !f.city.isBlank()) {
+        if (f.getCountry() != null && !f.getCountry().isBlank()
+                && !f.getCountry().equalsIgnoreCase(p.getCountry())) return false;
+        if (f.getCity() != null && !f.getCity().isBlank()) {
             // Partial, accent-insensitive city match: "sou" finds Sousse, La Soukra, etc.
-            String needle = normalize(f.city.trim());
+            String needle = normalize(f.getCity().trim());
             String hayCity = p.getCity() == null ? "" : normalize(p.getCity());
             String hayRegion = p.getRegion() == null ? "" : normalize(p.getRegion());
             String hayAddr = p.getAdresse() == null ? "" : normalize(p.getAdresse());
+            log.debug("[DEBUG Service]   needle='{}' hayCity='{}' hayRegion='{}'", needle, hayCity, hayRegion);
             if (!hayCity.contains(needle) && !hayRegion.contains(needle) && !hayAddr.contains(needle)) return false;
         }
-        if (f.type != null && !f.type.isBlank()
-                && !f.type.equalsIgnoreCase(p.getType())) return false;
-        if (f.minSurface != null && (p.getSurface() == null || p.getSurface() < f.minSurface)) return false;
-        if (f.maxSurface != null && (p.getSurface() == null || p.getSurface() > f.maxSurface)) return false;
-        if (f.minRooms != null && (p.getNbChambres() == null || p.getNbChambres() < f.minRooms)) return false;
+        if (f.getType() != null && !f.getType().isBlank()
+                && !f.getType().equalsIgnoreCase(p.getType())) return false;
+        if (f.getMinSurface() != null && (p.getSurface() == null || p.getSurface() < f.getMinSurface())) return false;
+        if (f.getMaxSurface() != null && (p.getSurface() == null || p.getSurface() > f.getMaxSurface())) return false;
+        if (f.getMinRooms() != null && (p.getNbChambres() == null || p.getNbChambres() < f.getMinRooms())) return false;
 
         Double price = isForSale(p) ? p.getPrixVente() : p.getPrixLocation();
-        if (f.minPrice != null && (price == null || price < f.minPrice)) return false;
-        if (f.maxPrice != null && (price == null || price > f.maxPrice)) return false;
+        if (f.getMinPrice() != null && (price == null || price < f.getMinPrice())) return false;
+        if (f.getMaxPrice() != null && (price == null || price > f.getMaxPrice())) return false;
 
-        if (f.q != null && !f.q.isBlank()) {
-            String needle = normalize(f.q.trim());
+        if (f.getQ() != null && !f.getQ().isBlank()) {
+            String needle = normalize(f.getQ().trim());
             String haystack = normalize(String.join(" ",
                     nullSafe(p.getTitre()),
                     nullSafe(p.getDescription()),

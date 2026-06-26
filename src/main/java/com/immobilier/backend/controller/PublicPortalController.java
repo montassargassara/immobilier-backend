@@ -27,11 +27,15 @@ public class PublicPortalController {
 
     @GetMapping("/vente")
     public ResponseEntity<List<PublicPropertyCardDTO>> listForSale(PublicSearchFilters filters) {
+        log.info("[DEBUG Controller] /vente — city='{}' | country='{}' | q='{}' | type='{}'",
+                filters.getCity(), filters.getCountry(), filters.getQ(), filters.getType());
         return ResponseEntity.ok(publicPortalService.listForSale(filters));
     }
 
     @GetMapping("/location")
     public ResponseEntity<List<PublicPropertyCardDTO>> listForRent(PublicSearchFilters filters) {
+        log.info("[DEBUG Controller] /location — city='{}' | country='{}' | q='{}' | type='{}'",
+                filters.getCity(), filters.getCountry(), filters.getQ(), filters.getType());
         return ResponseEntity.ok(publicPortalService.listForRent(filters));
     }
 

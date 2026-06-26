@@ -68,15 +68,17 @@ public class ClientPublicAuthController {
     @PutMapping("/profile")
     @PreAuthorize("hasRole('CLIENT_PUBLIC')")
     public ResponseEntity<?> updateProfile(@Valid @RequestBody UpdateClientProfileRequest request) {
+        User user = securityUtils.getCurrentUser();
+        if (user == null || user.getId() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         try {
-            User user = securityUtils.getCurrentUser();
-            if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            ClientPublicProfileDTO dto = clientAuth.updateProfile(user, request);
+            ClientPublicProfileDTO dto = clientAuth.updateProfile(user.getId(), request);
             return ResponseEntity.ok(dto);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            log.error("Profile update failed for user", e);
+            log.error("Profile update failed for user {}", user.getId(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Une erreur est survenue. Réessayez plus tard."));
         }

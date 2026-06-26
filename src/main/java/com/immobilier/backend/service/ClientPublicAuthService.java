@@ -103,7 +103,13 @@ public class ClientPublicAuthService {
     }
 
     @Transactional
-    public ClientPublicProfileDTO updateProfile(User user, UpdateClientProfileRequest req) {
+    public ClientPublicProfileDTO updateProfile(Long userId, UpdateClientProfileRequest req) {
+        if (userId == null) throw new IllegalArgumentException("ID utilisateur manquant");
+        // Load a MANAGED entity inside the transaction to avoid LazyInitializationException
+        // when Hibernate tries to merge a detached entity passed from the controller.
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("Utilisateur introuvable"));
+
         String newEmail = req.getEmail().trim().toLowerCase();
         String newPrenom = req.getPrenom().trim();
         String newNom = req.getNom().trim();
@@ -112,13 +118,13 @@ public class ClientPublicAuthService {
 
         // Email uniqueness — allow keeping the same address
         if (!newEmail.equals(user.getEmail())
-                && userRepository.existsByEmailAndIdNot(newEmail, user.getId())) {
+                && userRepository.existsByEmailAndIdNot(newEmail, userId)) {
             throw new IllegalArgumentException("Un compte existe déjà avec cet email.");
         }
 
-        // Telephone uniqueness — allow keeping the same number and allow null
+        // Telephone uniqueness — allow keeping the same number, allow null
         if (newTel != null && !newTel.equals(user.getTelephone())
-                && userRepository.existsByTelephoneAndIdNot(newTel, user.getId())) {
+                && userRepository.existsByTelephoneAndIdNot(newTel, userId)) {
             throw new IllegalArgumentException("Un compte existe déjà avec ce numéro de téléphone.");
         }
 
@@ -126,6 +132,7 @@ public class ClientPublicAuthService {
         user.setNom(newNom);
         user.setEmail(newEmail);
         user.setTelephone(newTel);
+        // Managed entity — dirty-checking flushes the changes at commit; save() is still safe
         User saved = userRepository.save(user);
 
         log.info("Public client {} updated their profile", saved.getId());
